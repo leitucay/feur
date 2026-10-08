@@ -4,7 +4,8 @@
     let existingCanteenProducts = [];
     let seedSession = null;
     try { seedSession = JSON.parse(localStorage.getItem(SESSION_KEY) || "null"); } catch (error) { seedSession = null; }
-    const canSeedStoreData = !!(seedSession && seedSession.storeId && String(seedSession.role || "").toLowerCase() !== "superadmin");
+    const seedStoreId = seedSession && (String(seedSession.role || "").toLowerCase() === "superadmin" ? seedSession.viewStoreId : seedSession.storeId);
+    const canSeedStoreData = !!seedStoreId;
     try { existingCanteenProducts = JSON.parse(localStorage.getItem(CANTEEN_PRODUCTS_KEY) || "[]"); } catch (error) { existingCanteenProducts = []; }
     if (canSeedStoreData && (!Array.isArray(existingCanteenProducts) || existingCanteenProducts.length === 0)) {
         localStorage.setItem(CANTEEN_PRODUCTS_KEY, JSON.stringify([
@@ -87,8 +88,19 @@
 
         } else if (sessionRole === "superadmin") {
 
-            // Superadmin (school) only manages stores & rent - never the POS pages
-            if (currentPage !== "superadmin.html") {
+            // Superadmin can open every page, but always for one chosen store.
+            // Without a chosen store they stay on the Stores & Rent page.
+            const storesForView = readStoresList();
+
+            if (
+                currentSession.viewStoreId &&
+                !storesForView.some(function(item) { return item.id === currentSession.viewStoreId; })
+            ) {
+                currentSession.viewStoreId = null;
+                localStorage.setItem(SESSION_KEY, JSON.stringify(currentSession));
+            }
+
+            if (!currentSession.viewStoreId && currentPage !== "superadmin.html") {
                 window.location.href =
                     inPagesFolder
                         ? "superadmin.html"
@@ -152,10 +164,74 @@
 
             setupMobileNavigation();
 
+            setupSuperadminChrome();
+
             setupAvatarMotion();
 
         }
     );
+
+    function setupSuperadminChrome() {
+        if (sessionRole !== "superadmin" || !currentSession) {
+            return;
+        }
+
+        const base = inPagesFolder ? "" : "pages/";
+        const nav = document.querySelector(".navigation");
+
+        if (nav && !nav.querySelector('a[href$="superadmin.html"]')) {
+            const link = document.createElement("a");
+            link.className = "nav-item";
+            link.href = base + "superadmin.html";
+            link.innerHTML = '<span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 9.5 4.5 4h15L21 9.5"/><path d="M3 9.5a3 3 0 0 0 6 0 3 3 0 0 0 6 0 3 3 0 0 0 6 0"/><path d="M5 12.5V20h14v-7.5M10 20v-4h4v4"/></svg></span><span>Stores &amp; Rent</span>';
+            nav.insertBefore(link, nav.firstChild);
+        }
+
+        const topbarRight = document.querySelector(".topbar-right");
+
+        if (!topbarRight || document.getElementById("storeSwitcher")) {
+            return;
+        }
+
+        const wrap = document.createElement("label");
+        wrap.className = "store-switcher";
+        wrap.style.cssText = "display:flex;align-items:center;gap:8px;font-size:12px;font-weight:650;color:#0B5D3B;";
+        wrap.innerHTML = "<span>Managing</span>";
+
+        const select = document.createElement("select");
+        select.id = "storeSwitcher";
+        select.style.cssText = "height:38px;max-width:220px;padding:0 10px;border:1px solid #B8DCC6;border-radius:10px;background:#FFFFFF;color:#1F2937;font-size:13px;";
+
+        const none = document.createElement("option");
+        none.value = "";
+        none.textContent = "Select a store...";
+        select.appendChild(none);
+
+        readStoresList().forEach(function(store) {
+            const option = document.createElement("option");
+            option.value = store.id;
+            option.textContent = store.name;
+            select.appendChild(option);
+        });
+
+        select.value = currentSession.viewStoreId || "";
+
+        select.addEventListener("change", function() {
+            currentSession.viewStoreId = select.value || null;
+            localStorage.setItem(SESSION_KEY, JSON.stringify(currentSession));
+
+            if (!select.value) {
+                window.location.href = base + "superadmin.html";
+            } else if (currentPage === "superadmin.html") {
+                window.location.reload();
+            } else {
+                window.location.reload();
+            }
+        });
+
+        wrap.appendChild(select);
+        topbarRight.insertBefore(wrap, topbarRight.firstChild);
+    }
 
     function roleLabel(role) {
         const value = String(role || "").toLowerCase();
@@ -294,7 +370,7 @@
             return;
         }
 
-        const isAdministrator = String(user.role || "").toLowerCase() === "administrator";
+        const isAdministrator = ["administrator", "superadmin"].indexOf(String(user.role || "").toLowerCase()) !== -1;
         const dropdown = document.createElement("div");
         const identity = document.createElement("div");
         const name = document.createElement("strong");
