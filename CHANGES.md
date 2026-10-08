@@ -1,7 +1,7 @@
 # Role-based access update
 
 Roles
-- Superadmin (school): `pages/superadmin.html` - add stores + owner logins, record rent payments, see Paid / Pending / Partial / Overdue per store, disable/enable/delete stores, reset owner password.
+- Superadmin (school): everything an admin can do (dashboard, POS, products, inventory, sales, customers, reports, settings, accounts) for ANY store via the "Managing" store switcher / Manage Store button, plus `pages/superadmin.html`: add stores + owner logins, record rent payments, Paid / Pending / Partial / Overdue per store, sales per store, disable/enable/delete stores, reset owner password.
 - Admin (store owner, role "Administrator"): the existing full admin pages, but only for their own store's data and accounts.
 - Cashier (role "Staff"): unchanged POS view.
 
