@@ -60,12 +60,21 @@
         return readJSON(SESSION_KEY, null);
     }
 
-    /* Store id used for scoping. null = no scoping (logged out / superadmin). */
+    function isSuper(session) { return !!session && lower(session.role) === "superadmin"; }
+
+    /* Store whose data is being used. Superadmin = the store they chose to manage. */
     function activeStoreId() {
         var session = readSession();
-        if (!session || !session.storeId) { return null; }
-        if (lower(session.role) === "superadmin") { return null; }
-        return session.storeId;
+        if (!session) { return null; }
+        if (isSuper(session)) { return session.viewStoreId || null; }
+        return session.storeId || null;
+    }
+
+    /* Only a store owner / cashier is limited to the users of their own store. */
+    function ownStoreId() {
+        var session = readSession();
+        if (!session || isSuper(session)) { return null; }
+        return session.storeId || null;
     }
 
     function scopedName(key) {
@@ -173,7 +182,7 @@
     proto.getItem = function (key) {
         if (this !== ls) { return rawGet.call(this, key); }
 
-        var storeId = activeStoreId();
+        var storeId = ownStoreId();
         if (storeId && key === USERS_KEY) {
             var all = readJSON(USERS_KEY, []);
             if (!Array.isArray(all)) { all = []; }
@@ -185,7 +194,22 @@
     proto.setItem = function (key, value) {
         if (this !== ls) { return rawSet.call(this, key, value); }
 
-        var storeId = activeStoreId();
+        if (key === USERS_KEY && isSuper(readSession())) {
+            /* superadmin manages every account; new store accounts get the store being managed */
+            var viewing = activeStoreId();
+            try {
+                var list = JSON.parse(value);
+                if (Array.isArray(list) && viewing) {
+                    list.forEach(function (user) {
+                        if (user && lower(user.role) !== "superadmin" && !user.storeId) { user.storeId = viewing; }
+                    });
+                    value = JSON.stringify(list);
+                }
+            } catch (error) { /* keep value as is */ }
+            return rawSet.call(this, USERS_KEY, value);
+        }
+
+        var storeId = ownStoreId();
         if (storeId && key === USERS_KEY) {
             var incoming;
             try { incoming = JSON.parse(value); } catch (error) { return; }
@@ -212,7 +236,7 @@
         if (this !== ls) { return rawRemove.call(this, key); }
 
         /* a store must never be able to wipe the shared user list */
-        if (activeStoreId() && key === USERS_KEY) { return; }
+        if (key === USERS_KEY && readSession()) { return; }
         return rawRemove.call(this, scopedName(key));
     };
 
