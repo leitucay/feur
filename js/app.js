@@ -2,12 +2,8 @@
 
     const CANTEEN_PRODUCTS_KEY = "feuCanteenInventory";
     let existingCanteenProducts = [];
-    let seedSession = null;
-    try { seedSession = JSON.parse(localStorage.getItem(SESSION_KEY) || "null"); } catch (error) { seedSession = null; }
-    const seedStoreId = seedSession && (String(seedSession.role || "").toLowerCase() === "superadmin" ? seedSession.viewStoreId : seedSession.storeId);
-    const canSeedStoreData = !!seedStoreId;
     try { existingCanteenProducts = JSON.parse(localStorage.getItem(CANTEEN_PRODUCTS_KEY) || "[]"); } catch (error) { existingCanteenProducts = []; }
-    if (canSeedStoreData && (!Array.isArray(existingCanteenProducts) || existingCanteenProducts.length === 0)) {
+    if (!Array.isArray(existingCanteenProducts) || existingCanteenProducts.length === 0) {
         localStorage.setItem(CANTEEN_PRODUCTS_KEY, JSON.stringify([
             {id:1,name:"Chicken Rice Meal",category:"Meals",price:85,stock:18,size:"Regular",color:"Fresh",image: "\u{1F35B}"},
             {id:2,name:"Pork Adobo Rice",category:"Meals",price:75,stock:16,size:"Regular",color:"Fresh",image: "\u{1F372}"},
@@ -58,82 +54,31 @@
         "customers.html"
     ];
 
-    const adminOnlyPages = ["products.html", "inventory.html", "reports.html", "customers.html", "settings.html", "account.html"];
-
-    const sessionRole = String(currentSession && currentSession.role || "").toLowerCase();
-    const inPagesFolder = window.location.pathname.includes("/pages/");
-
-    function readStoresList() {
-        try {
-            const list = JSON.parse(localStorage.getItem("feuCanteenStores") || "[]");
-            return Array.isArray(list) ? list : [];
-        } catch (error) {
-            return [];
-        }
-    }
+    const adminOnlyPages = ["products.html", "inventory.html", "reports.html", "customers.html", "settings.html", "account.html", "stores.html", "rent.html"];
 
     if (
         currentPage !== "login.html"
     ) {
 
-        const loginPath =
-            inPagesFolder
-                ? "login.html"
-                : "pages/login.html";
-
         if (!currentSession) {
+
+            const loginPath =
+                window.location.pathname.includes("/pages/")
+                    ? "login.html"
+                    : "pages/login.html";
 
             window.location.href =
                 loginPath;
+        }
 
-        } else if (sessionRole === "superadmin") {
-
-            // Superadmin can open every page, but always for one chosen store.
-            // Without a chosen store they stay on the Stores & Rent page.
-            const storesForView = readStoresList();
-
-            if (
-                currentSession.viewStoreId &&
-                !storesForView.some(function(item) { return item.id === currentSession.viewStoreId; })
-            ) {
-                currentSession.viewStoreId = null;
-                localStorage.setItem(SESSION_KEY, JSON.stringify(currentSession));
-            }
-
-            if (!currentSession.viewStoreId && currentPage !== "superadmin.html") {
-                window.location.href =
-                    inPagesFolder
-                        ? "superadmin.html"
-                        : "pages/superadmin.html";
-            }
-
-        } else {
-
-            // Store owner (Administrator) and cashier (Staff)
-            if (currentPage === "superadmin.html") {
-                window.location.href =
-                    "../index.html";
-            }
-
-            const store =
-                readStoresList().find(function(item) {
-                    return item.id === currentSession.storeId;
-                });
+        if (
+            currentSession &&
+            String(
+                currentSession.role || ""
+            ).toLowerCase() === "staff"
+        ) {
 
             if (
-                !store ||
-                String(store.status || "active").toLowerCase() === "inactive"
-            ) {
-                // store removed or disabled by the school
-                localStorage.removeItem(
-                    SESSION_KEY
-                );
-                window.location.href =
-                    loginPath;
-            }
-
-            if (
-                sessionRole === "staff" &&
                 adminOnlyPages.includes(
                     currentPage
                 )
@@ -164,81 +109,10 @@
 
             setupMobileNavigation();
 
-            setupSuperadminChrome();
-
             setupAvatarMotion();
 
         }
     );
-
-    function setupSuperadminChrome() {
-        if (sessionRole !== "superadmin" || !currentSession) {
-            return;
-        }
-
-        const base = inPagesFolder ? "" : "pages/";
-        const nav = document.querySelector(".navigation");
-
-        if (nav && !nav.querySelector('a[href$="superadmin.html"]')) {
-            const link = document.createElement("a");
-            link.className = "nav-item";
-            link.href = base + "superadmin.html";
-            link.innerHTML = '<span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 9.5 4.5 4h15L21 9.5"/><path d="M3 9.5a3 3 0 0 0 6 0 3 3 0 0 0 6 0 3 3 0 0 0 6 0"/><path d="M5 12.5V20h14v-7.5M10 20v-4h4v4"/></svg></span><span>Stores &amp; Rent</span>';
-            nav.insertBefore(link, nav.firstChild);
-        }
-
-        const topbarRight = document.querySelector(".topbar-right");
-
-        if (!topbarRight || document.getElementById("storeSwitcher")) {
-            return;
-        }
-
-        const wrap = document.createElement("label");
-        wrap.className = "store-switcher";
-        wrap.style.cssText = "display:flex;align-items:center;gap:8px;font-size:12px;font-weight:650;color:#0B5D3B;";
-        wrap.innerHTML = "<span>Managing</span>";
-
-        const select = document.createElement("select");
-        select.id = "storeSwitcher";
-        select.style.cssText = "height:38px;max-width:220px;padding:0 10px;border:1px solid #B8DCC6;border-radius:10px;background:#FFFFFF;color:#1F2937;font-size:13px;";
-
-        const none = document.createElement("option");
-        none.value = "";
-        none.textContent = "Select a store...";
-        select.appendChild(none);
-
-        readStoresList().forEach(function(store) {
-            const option = document.createElement("option");
-            option.value = store.id;
-            option.textContent = store.name;
-            select.appendChild(option);
-        });
-
-        select.value = currentSession.viewStoreId || "";
-
-        select.addEventListener("change", function() {
-            currentSession.viewStoreId = select.value || null;
-            localStorage.setItem(SESSION_KEY, JSON.stringify(currentSession));
-
-            if (!select.value) {
-                window.location.href = base + "superadmin.html";
-            } else if (currentPage === "superadmin.html") {
-                window.location.reload();
-            } else {
-                window.location.reload();
-            }
-        });
-
-        wrap.appendChild(select);
-        topbarRight.insertBefore(wrap, topbarRight.firstChild);
-    }
-
-    function roleLabel(role) {
-        const value = String(role || "").toLowerCase();
-        if (value === "superadmin") { return "Super Admin"; }
-        if (value === "administrator") { return "Owner"; }
-        return "Staff";
-    }
 
     function setupAvatarMotion() {
         document.querySelectorAll(".profile-avatar").forEach(function(avatar) {
@@ -363,6 +237,114 @@
         applyRolePermissions(
             user.role
         );
+
+        addRentNavigation(user);
+        showRentBanner(user);
+    }
+
+    function roleLabel(role) {
+        const value = String(role || "").toLowerCase();
+        if (value === "superadmin") return "Super Admin";
+        if (value === "administrator") return "Owner";
+        return "Staff";
+    }
+
+    function basePathPrefix() {
+        return window.location.pathname.includes("/pages/") ? "" : "pages/";
+    }
+
+    /* Adds "Stores & Rent" (superadmin) or "My Rent" (store owner) to the sidebar */
+    function addRentNavigation(user) {
+        const role = String(user.role || "").toLowerCase();
+        const nav = document.querySelector(".sidebar .navigation");
+
+        if (!nav || (role !== "superadmin" && role !== "administrator") || document.getElementById("rentNavItem")) {
+            return;
+        }
+
+        const isSuper = role === "superadmin";
+        const target = isSuper ? "stores.html" : "rent.html";
+        const link = document.createElement("a");
+
+        link.id = "rentNavItem";
+        link.href = basePathPrefix() + target;
+        link.className = "nav-item" + (currentPage === target ? " active" : "");
+        link.innerHTML =
+            '<span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10 12 4l9 6"/><path d="M5 10v9h14v-9"/><path d="M9 19v-5h6v5"/></svg></span>' +
+            "<span>" + (isSuper ? "Stores &amp; Rent" : "My Rent") + "</span>";
+
+        const settingsLink = nav.querySelector('a[href$="settings.html"]');
+
+        if (settingsLink) {
+            nav.insertBefore(link, settingsLink);
+        } else {
+            nav.appendChild(link);
+        }
+    }
+
+    /* Dashboard reminder about rent (store owner) or stores that still owe rent (superadmin) */
+    function showRentBanner(user) {
+        const dashboard = document.querySelector(".dashboard");
+        const role = String(user.role || "").toLowerCase();
+
+        if (!dashboard || (role !== "superadmin" && role !== "administrator") || typeof window.FeuRent === "undefined") {
+            return;
+        }
+
+        const R = window.FeuRent;
+        const stores = R.getStores();
+        const key = R.periodKey();
+        let banner = null;
+
+        if (role === "superadmin") {
+            const unpaid = stores.filter(function(store) { return R.statusFor(store, key) !== "paid"; });
+            const review = stores.filter(function(store) { return R.statusFor(store, key) === "review"; });
+            const overdue = stores.filter(function(store) { return R.statusFor(store, key) === "overdue"; });
+
+            if (!stores.length) {
+                return;
+            }
+
+            banner = {
+                kind: overdue.length ? "danger" : (unpaid.length ? "" : "ok"),
+                title: unpaid.length
+                    ? unpaid.length + " of " + stores.length + " store(s) have not been tagged paid for " + R.periodLabel(key)
+                    : "All stores are paid for " + R.periodLabel(key),
+                text: (overdue.length ? overdue.length + " overdue. " : "") + (review.length ? review.length + " receipt(s) waiting for your review." : ""),
+                href: basePathPrefix() + "stores.html",
+                label: "Open Stores & Rent"
+            };
+        } else {
+            const store = stores.find(function(item) { return item.ownerId === user.id; });
+
+            if (!store) {
+                return;
+            }
+
+            const status = R.statusFor(store, key);
+            const due = R.dueDateFor(store, key);
+
+            if (status === "paid") {
+                return;
+            }
+
+            banner = {
+                kind: status === "overdue" ? "danger" : "",
+                title: status === "overdue"
+                    ? "Rent overdue: " + R.formatMoney(store.rentAmount) + " was due " + R.formatDate(due)
+                    : (status === "review"
+                        ? "Receipt submitted for " + R.periodLabel(key)
+                        : "Rent due " + R.formatDate(due) + ": " + R.formatMoney(store.rentAmount)),
+                text: status === "review" ? "Waiting for the school administrator to confirm payment." : "Upload your proof of payment once you have paid.",
+                href: basePathPrefix() + "rent.html",
+                label: "View Rent"
+            };
+        }
+
+        const element = document.createElement("div");
+        element.className = "rent-banner " + banner.kind;
+        element.innerHTML = "<div><strong>" + escapeHTML(banner.title) + "</strong>" + escapeHTML(banner.text) + '</div><a href="' + banner.href + '">' + escapeHTML(banner.label) + "</a>";
+        dashboard.insertBefore(element, dashboard.firstChild);
     }
 
     function setupProfileDropdown(profile, user) {
@@ -370,7 +352,7 @@
             return;
         }
 
-        const isAdministrator = ["administrator", "superadmin"].indexOf(String(user.role || "").toLowerCase()) !== -1;
+        const isAdministrator = ["administrator", "superadmin"].includes(String(user.role || "").toLowerCase());
         const dropdown = document.createElement("div");
         const identity = document.createElement("div");
         const name = document.createElement("strong");
@@ -529,7 +511,7 @@
                 role || ""
             ).toLowerCase();
 
-        const restrictedPages = ["products.html", "inventory.html", "reports.html", "customers.html", "settings.html", "account.html"];
+        const restrictedPages = ["products.html", "inventory.html", "reports.html", "customers.html", "settings.html", "account.html", "stores.html", "rent.html"];
 
         if (
             normalizedRole !== "staff"
@@ -1074,3 +1056,48 @@
                 "&#039;"
             );
     }
+
+
+    /* Take-out supplies (packaging / spoon / fork) shared by POS, Inventory and Settings */
+    window.FeuSupplies = (function() {
+        const KEY = "feuCanteenSupplies";
+        const USAGE_PER_TAKEOUT_ORDER = 1;
+
+        function defaults() {
+            return [
+                { id: "SUP-PACKAGING", name: "Packaging (Pambalot)", unit: "pcs", stock: 100, reorderLevel: 20 },
+                { id: "SUP-SPOON", name: "Spoon", unit: "pcs", stock: 100, reorderLevel: 20 },
+                { id: "SUP-FORK", name: "Fork", unit: "pcs", stock: 100, reorderLevel: 20 }
+            ];
+        }
+
+        function get() {
+            let list = null;
+
+            try { list = JSON.parse(localStorage.getItem(KEY)); } catch (error) { list = null; }
+
+            if (!Array.isArray(list) || list.length === 0) {
+                list = defaults();
+                localStorage.setItem(KEY, JSON.stringify(list));
+            }
+
+            return list;
+        }
+
+        function save(list) {
+            localStorage.setItem(KEY, JSON.stringify(list));
+        }
+
+        /* One packaging, one spoon and one fork are used for every take-out order */
+        function useForTakeout() {
+            const list = get();
+
+            list.forEach(function(item) {
+                item.stock = Math.max(0, (Number(item.stock) || 0) - USAGE_PER_TAKEOUT_ORDER);
+            });
+
+            save(list);
+        }
+
+        return { KEY: KEY, get: get, save: save, useForTakeout: useForTakeout };
+    })();
