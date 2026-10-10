@@ -1,0 +1,52 @@
+/* Rent & store management additions - uses the existing FEU green/gold palette */
+.rent-banner{display:flex;align-items:center;justify-content:space-between;gap:16px;margin:0 0 18px;padding:14px 18px;border:1px solid #E8D99E;border-radius:12px;background:#FBF6E5;color:#806515;font-size:13px}
+.rent-banner strong{display:block;color:#0B5D3B;font-size:14px}
+.rent-banner.danger{border-color:#F3C4C4;background:#FDF0F0;color:#9B2C2C}
+.rent-banner.danger strong{color:#9B2C2C}
+.rent-banner.ok{border-color:#CFE6D8;background:#EAF5EF;color:#0B5D3B}
+.rent-banner a{flex-shrink:0;padding:8px 14px;border-radius:9px;background:#0B5D3B;color:#fff!important;font-size:12px;font-weight:700;text-decoration:none}
+
+.rent-form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:16px}
+.rent-form-grid .full{grid-column:1/-1}
+.rent-form-grid .stock-label{margin-top:2px}
+.rent-section-title{grid-column:1/-1;margin-top:8px;padding-top:12px;border-top:1px solid #DCE6E1;color:#0B5D3B;font-size:12px;font-weight:800;letter-spacing:.8px;text-transform:uppercase}
+.rent-hint{margin-top:4px;color:#5E6B63;font-size:11px}
+.rent-error{display:none;margin-top:12px;padding:10px 12px;border-radius:9px;background:#FDF0F0;color:#9B2C2C;font-size:12px}
+.rent-error.show{display:block}
+
+.rent-actions{display:flex;flex-wrap:wrap;gap:6px}
+.rent-btn{min-height:32px;padding:0 11px;border:1px solid #DCE6E1;border-radius:8px;background:#fff;color:#0B5D3B;font-size:11px;font-weight:700;cursor:pointer;transition:.2s}
+.rent-btn:hover{background:#EAF5EF}
+.rent-btn.primary{border-color:#0B5D3B;background:#0B5D3B;color:#fff}
+.rent-btn.primary:hover{background:#137A4B}
+.rent-btn.danger{border-color:#F3C4C4;color:#9B2C2C}
+.rent-btn.danger:hover{background:#FDF0F0}
+
+.rent-store-cell strong{display:block;color:#1F2937;font-size:13px}
+.rent-store-cell span{display:block;margin-top:3px;color:#5E6B63;font-size:11px}
+.rent-disabled-tag{display:inline-block;margin-left:6px;padding:2px 6px;border-radius:6px;background:#F1F5F3;color:#5E6B63;font-size:10px;font-weight:700}
+
+.rent-summary{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:18px}
+.rent-upload-box{display:grid;gap:10px}
+.rent-file-input{padding:10px;border:1px dashed #BBD3C5;border-radius:10px;background:#F8FBF9;font-size:12px;color:#1F2937}
+.rent-period-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.rent-toolbar-spacer{flex:1}
+
+.rent-receipt-item{display:flex;gap:14px;align-items:flex-start;padding:14px 0;border-bottom:1px solid #DCE6E1}
+.rent-receipt-item:last-child{border-bottom:none}
+.rent-receipt-image{width:150px;max-height:200px;object-fit:contain;border:1px solid #DCE6E1;border-radius:10px;background:#fff}
+.rent-pdf-preview{width:150px;height:110px;display:grid;place-items:center;border:1px solid #DCE6E1;border-radius:10px;background:#EAF5EF;color:#0B5D3B;font-size:12px;font-weight:800}
+.rent-receipt-meta{display:grid;gap:5px;font-size:12px;color:#5E6B63}
+.rent-receipt-meta strong{color:#1F2937;font-size:13px;word-break:break-all}
+
+.rent-status-note{margin-top:12px;padding:12px 14px;border-radius:10px;background:#EAF5EF;color:#0B5D3B;font-size:12px}
+.rent-status-note.warn{background:#FBF6E5;color:#806515}
+.rent-status-note.bad{background:#FDF0F0;color:#9B2C2C}
+
+@media(max-width:900px){
+    .rent-summary{grid-template-columns:repeat(2,1fr)}
+    .rent-form-grid{grid-template-columns:1fr}
+    .rent-receipt-item{flex-direction:column}
+}
+
+[hidden]{display:none!important}
