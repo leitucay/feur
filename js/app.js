@@ -54,7 +54,9 @@
         "customers.html"
     ];
 
-    const adminOnlyPages = ["products.html", "inventory.html", "reports.html", "customers.html", "settings.html", "account.html"];
+    const adminOnlyPages = ["products.html", "inventory.html", "reports.html", "customers.html", "settings.html", "account.html", "rent.html", "stores.html"];
+    if (currentPage === "stores.html" && String(currentSession?.role || "").toLowerCase() !== "superadmin") window.location.replace("../index.html");
+    if (currentPage === "rent.html" && !["administrator", "superadmin"].includes(String(currentSession?.role || "").toLowerCase())) window.location.replace("../index.html");
 
     if (
         currentPage !== "login.html"
@@ -108,6 +110,7 @@
             setupUserSession();
 
             setupMobileNavigation();
+            addRentalNavigation();
 
             setupAvatarMotion();
 
@@ -261,11 +264,11 @@
         dropdown.setAttribute("role", "menu");
         identity.className = "profile-dropdown-identity";
         name.textContent = user.name || user.username || "User";
-        role.textContent = isAdministrator ? "Owner" : "Staff";
+        role.textContent = String(user.role || "").toLowerCase() === "superadmin" ? "School Administrator" : (isAdministrator ? "Owner" : "Staff");
         identity.append(name, role);
         dropdown.appendChild(identity);
 
-        if (isAdministrator) {
+        if (isAdministrator || String(user.role || "").toLowerCase() === "superadmin") {
             const accountLink = document.createElement("a");
             accountLink.href = window.location.pathname.includes("/pages/")
                 ? "account.html"
@@ -953,4 +956,22 @@
                 /'/g,
                 "&#039;"
             );
+    }
+
+    // NEW: navigation for the browser-local rent workflow.
+    function addRentalNavigation() {
+        const nav = document.querySelector(".navigation");
+        if (!nav || !currentSession) return;
+        const role = String(currentSession.role || "").toLowerCase();
+        const inPages = window.location.pathname.includes("/pages/");
+        const items = role === "superadmin" ? [["stores.html", "Store Rentals"]] : role === "administrator" ? [["rent.html", "My Rent"]] : [];
+        items.forEach(([page, title]) => {
+            if (nav.querySelector('a[href$="' + page + '"]')) return;
+            const a = document.createElement("a");
+            a.className = "nav-item";
+            a.href = (inPages ? "" : "pages/") + page;
+            a.textContent = "▣ " + title;
+            if (currentPage === page) a.classList.add("active");
+            nav.appendChild(a);
+        });
     }
